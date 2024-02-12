@@ -12,6 +12,29 @@ export default function Home() {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
+  const convertToCSV = (objArray:any[]) => {
+    const array = typeof objArray !== 'object' ? JSON.parse(objArray) : objArray;
+    let str = '';
+
+    // Extract headers
+    const header = Object.keys(array[0]);
+    str += header.join(',') + '\r\n';
+
+    // Extract rows
+    for (let i = 0; i < array.length; i++) {
+        let line = '';
+        for (let index in array[i]) {
+            if (line !== '') line += ',';
+            line += array[i][index];
+        }
+        str += line + '\r\n';
+    }
+
+    return str;
+};
+
+
+
 
   async function search(){
       setLoading(true);
@@ -29,6 +52,34 @@ export default function Home() {
         setLoading(false)
       }
   }
+
+  function exportCsv(){
+    const mappedData = data.map((item) => {
+      return {
+        status:item.business_status,
+        name:item.name,
+        address:item.vicinity.replace(/,/g, ''),
+        rating:item.rating,
+        totalRating:item.user_ratings_total,
+        lat:item.geometry.location.lat,
+        lng:item.geometry.location.lng,
+      }
+    })
+    const csvData = convertToCSV(mappedData);
+    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) { // feature detection
+        // Browsers that support HTML5 download attribute
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', "export.csv");
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+  }
+
   return (
    <main className="w-full min-h-screen py-32 bg-gray-950 flex items-center justify-center flex-col">
       <h1 className="text-white">PLACE FINDER</h1>
@@ -50,7 +101,7 @@ export default function Home() {
       </div>
 
       <div className="container mx-auto py-10 bg-white">
-
+      <Button className="my-2" onClick={() =>exportCsv()}>Export CSV {data.length}</Button>
       <DataTable columns={columns} data={data} />
       </div>
    </main>
